@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set +e
 export EXEC_DIR="$PWD"
@@ -10,7 +10,7 @@ export OUTPUT_DIR="$EXEC_DIR/sys"
 # this allows the user to build their own apps and have
 # them installed in the BMFS
 if [ "x$APPS" = x ]; then
-	APPS="hello.app sysinfo.app systest.app uitest.app"
+	APPS="hello.app sysinfo.app systest.app uitest.app mouse.app"
 	if [ "$(uname)" != "Darwin" ]; then
 		APPS="$APPS helloc.app raytrace.app minIP.app cube3d.app
 			color-plasma.app 3d-model-loader.app"
@@ -199,7 +199,7 @@ function baremetal_install {
 	cat fat32.img bmfs.img > baremetal_os.img
 
 	# Create Floppy bootable system disk
-	cat bios-floppy.sys pure64-bios.sys kernel.sys monitor.bin > floppy.sys
+	cat bios-floppy.sys software-bios.sys > floppy.sys
 	dd if=floppy.sys of=floppy.img conv=notrunc > /dev/null 2>&1
 
 	cd ..
@@ -410,6 +410,20 @@ function baremetal_bnr-uefi {
 	baremetal_run-uefi
 }
 
+function baremetal_app {
+	baremetal_sys_check
+	cd sys
+	if [ -f $1 ]; then
+		./bmfs bmfs.img format /force
+		./bmfs bmfs.img write $1
+		cat fat32.img bmfs.img > baremetal_os.img
+		cd ..
+	else
+		echo "$1 does not exist."
+		cd ..
+	fi
+}
+
 function baremetal_help {
 	echo "BareMetal-OS Script"
 	echo "Available commands:"
@@ -426,6 +440,7 @@ function baremetal_help {
 	echo "vmdk     - Generate VMDK disk image for VMware"
 	echo "bnr      - Build 'n Run"
 	echo "bnr-uefi - Build 'n Run in UEFI mode"
+	echo "*.app    - Install and run an app"
 }
 
 function baremetal_src_check {
@@ -471,6 +486,8 @@ elif [ $# -eq 1 ]; then
 		baremetal_bnr
 	elif [ "$1" == "bnr-uefi" ]; then
 		baremetal_bnr-uefi
+	elif [[ "$*" == *".app"* ]]; then
+		baremetal_app $1
 	else
 		echo "Invalid argument '$1'"
 	fi
