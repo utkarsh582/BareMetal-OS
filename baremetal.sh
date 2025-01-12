@@ -13,7 +13,7 @@ if [ "x$APPS" = x ]; then
 	APPS="hello.app sysinfo.app systest.app uitest.app " # mouse.app
 	if [ "$(uname)" != "Darwin" ]; then
 		APPS="$APPS helloc.app raytrace.app minIP.app cube3d.app
-			color-plasma.app  fs.app" # 3d-model-loader.app
+			color-plasma.app" # 3d-model-loader.app
 	fi
 fi
 # see if BMFS_SIZE was defined for custom disk sizes
