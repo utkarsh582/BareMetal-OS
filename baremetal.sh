@@ -10,10 +10,10 @@ export OUTPUT_DIR="$EXEC_DIR/sys"
 # this allows the user to build their own apps and have
 # them installed in the BMFS
 if [ "x$APPS" = x ]; then
-	APPS="hello.app sysinfo.app systest.app uitest.app mouse.app"
+	APPS="hello.app sysinfo.app systest.app uitest.app " # mouse.app
 	if [ "$(uname)" != "Darwin" ]; then
 		APPS="$APPS helloc.app raytrace.app minIP.app cube3d.app
-			color-plasma.app 3d-model-loader.app"
+			color-plasma.app  fs.app" # 3d-model-loader.app
 	fi
 fi
 # see if BMFS_SIZE was defined for custom disk sizes
@@ -263,11 +263,13 @@ function baremetal_run {
 
 	# Disk configuration. Use one controller.
 		-drive id=disk0,file="sys/baremetal_os.img",if=none,format=raw
+		# -drive id=disk1,file="sys/OVMF.fd",if=none,format=raw
 	# NVMe
-	#	-device nvme,serial=12345678,drive=disk0
+		# -device nvme,serial=12345678,drive=disk0
 	# AHCI
 		-device ahci,id=ahci
 		-device ide-hd,drive=disk0,bus=ahci.0
+		# -device ide-hd,drive=disk1,bus=ahci.1
 	# VIRTIO
 	#	-device virtio-blk,drive=disk0 #,disable-legacy=on,disable-modern=false
 	# IDE
