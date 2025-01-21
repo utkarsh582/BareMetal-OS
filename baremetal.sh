@@ -277,6 +277,11 @@ function baremetal_run {
 	# Floppy
 	#	-drive format=raw,file="sys/floppy.img",index=0,if=floppy
 
+	# USB
+	#	-device qemu-xhci
+	#	-device usb-mouse
+	#	-device usb-kbd
+
 	# Serial configuration
 	# Output serial to file
 		-serial file:"sys/serial.log"
@@ -298,6 +303,7 @@ function baremetal_run {
 	#	-trace "virt*"
 	#	-trace "apic*"
 	#	-trace "msi*"
+	#	-trace "usb*"
 	#	-d trace:memory_region_ops_* # Or read/write
 	# Prevent QEMU for resetting (triple fault)
 	#	-no-shutdown -no-reboot
