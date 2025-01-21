@@ -12,7 +12,7 @@ export OUTPUT_DIR="$EXEC_DIR/sys"
 if [ "x$APPS" = x ]; then
 	APPS="hello.app sysinfo.app systest.app uitest.app " # mouse.app
 	if [ "$(uname)" != "Darwin" ]; then
-		APPS="$APPS helloc.app raytrace.app minIP.app cube3d.app
+		APPS="$APPS helloc.app raytrace.app minIP.app cube3d.app orderbook.app
 			color-plasma.app" # 3d-model-loader.app
 	fi
 fi
