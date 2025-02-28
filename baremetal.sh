@@ -13,7 +13,7 @@ if [ "x$APPS" = x ]; then
 	APPS="hello.app sysinfo.app systest.app uitest.app " # mouse.app
 	if [ "$(uname)" != "Darwin" ]; then
 		APPS="$APPS helloc.app raytrace.app minIP.app cube3d.app orderbook.app
-			color-plasma.app" # 3d-model-loader.app
+			color-plasma.app netflood.app" # 3d-model-loader.app
 	fi
 fi
 # see if BMFS_SIZE was defined for custom disk sizes
@@ -278,9 +278,9 @@ function baremetal_run {
 	#	-drive format=raw,file="sys/floppy.img",index=0,if=floppy
 
 	# USB
-	#	-device qemu-xhci
+		-device qemu-xhci
 	#	-device usb-mouse
-	#	-device usb-kbd
+		-device usb-kbd
 
 	# Serial configuration
 	# Output serial to file
@@ -303,7 +303,7 @@ function baremetal_run {
 	#	-trace "virt*"
 	#	-trace "apic*"
 	#	-trace "msi*"
-	#	-trace "usb*"
+		-trace "usb*"
 	#	-d trace:memory_region_ops_* # Or read/write
 	# Prevent QEMU for resetting (triple fault)
 	#	-no-shutdown -no-reboot
