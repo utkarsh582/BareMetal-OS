@@ -12,8 +12,8 @@ export OUTPUT_DIR="$EXEC_DIR/sys"
 if [ "x$APPS" = x ]; then
 	APPS="hello.app sysinfo.app systest.app uitest.app " # mouse.app
 	if [ "$(uname)" != "Darwin" ]; then
-		APPS="$APPS helloc.app raytrace.app minIP.app cube3d.app orderbook.app
-			color-plasma.app netflood.app SmpExample.app TcpClient_ex.app server_cm.app " # 3d-model-loader.app 
+		APPS="$APPS raytrace.app minIP.app orderbook.app
+			netflood.app SmpExample.app TcpClient_ex.app server_cm.app " # 3d-model-loader.app cube3d.app color-plasma.app helloc.app   
 	fi
 fi
 # see if BMFS_SIZE was defined for custom disk sizes
