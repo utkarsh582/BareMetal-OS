@@ -6,6 +6,8 @@
 
 [Discuss this project here](https://github.com/return-infinity/BareMetal-OS/discussions)
 
+[![CI](https://github.com/ReturnInfinity/BareMetal-OS/actions/workflows/main.yml/badge.svg)](https://github.com/ReturnInfinity/BareMetal-OS/actions/workflows/main.yml)
+
 **BareMetal OS** is an exokernel-based operating system crafted entirely in x86-64 assembly and is designed to provide unparalleled levels of flexibility and efficiency. By exposing hardware resources directly to applications, it empowers developers to finely tune and optimize their software for specific tasks. With the exokernel's minimalist design, it minimizes the overhead imposed by traditional operating systems, enabling applications to achieve peak performance. Its x86-64 assembly implementation speaks to its commitment to squeezing every ounce of performance from the hardware, making it a compelling choice for those who demand the utmost control and efficiency from their computing environments.
 
 > [!NOTE]
@@ -69,10 +71,12 @@ BareMetal OS consists of several different projects:
 * Bus
   * PCIe
   * PCI
+  * xHCI (USB 3)
 * Network
   * Gigabit
     * Intel 8254x Gigabit (e1000)
     * Intel 8257x Gigabit (e1000e)
+    * Intel 8259x 10 Gigabit (ixbge)
     * Realtek 816x/811x Gigabit (rtl8169)
   * Virtual
     * Virtio-Net
@@ -84,6 +88,7 @@ BareMetal OS consists of several different projects:
 * HID (Human Interface Devices)
   * PS/2 Keyboard
   * PS/2 Mouse
+  * USB Keyboard
 
 
 # Initial configuration
@@ -173,8 +178,8 @@ kernel start
 [ BareMetal ]
 64
 bus
-storage
-network
+nvs
+net
 system ready
 ```
 

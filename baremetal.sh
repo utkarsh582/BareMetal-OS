@@ -4,6 +4,77 @@ set +e
 export EXEC_DIR="$PWD"
 export OUTPUT_DIR="$EXEC_DIR/sys"
 
+cmd=( qemu-system-x86_64
+	-machine q35
+
+# CPU (only 1 cpu type should be uncommented)
+	-smp sockets=1,cpus=4
+	-cpu Westmere
+#	-cpu Westmere,x2apic,pdpe1gb
+#	-cpu host -enable-kvm
+
+# RAM
+	-m 256 # Value is in Megabytes
+
+# Video
+	-device VGA,edid=on,xres=1024,yres=768
+
+# Network configuration. Use one controller.
+	-netdev socket,id=testnet1,listen=:1234
+#	-netdev socket,id=testnet2,listen=:1235
+# Intel 82540EM
+	-device e1000,netdev=testnet1,mac=10:11:12:08:25:40
+#	-device e1000,netdev=testnet2,mac=11:12:13:08:25:40
+# Intel 82574L
+#	-device e1000e,netdev=testnet1,mac=10:11:12:08:25:74
+# VIRTIO
+#	-device virtio-net-pci,netdev=testnet1,mac=10:11:12:13:14:15 #,disable-legacy=on,disable-modern=false
+
+# Disk configuration. Use one controller.
+	-drive id=disk0,file="sys/baremetal_os.img",if=none,format=raw
+# NVMe
+#	-device nvme,serial=12345678,drive=disk0
+# AHCI
+	-device ide-hd,drive=disk0
+# VIRTIO
+#	-device virtio-blk,drive=disk0 #,disable-legacy=on,disable-modern=false
+# Floppy
+#	-drive format=raw,file="sys/floppy.img",index=0,if=floppy
+
+# USB
+#	-device qemu-xhci # Supports MSI-X
+#	-device nec-usb-xhci # Supports MSI-X and MSI
+#	-device usb-mouse
+#	-device usb-kbd
+
+# Serial configuration
+# Output serial to file
+	-serial file:"sys/serial.log"
+# Output serial to console
+#	-chardev stdio,id=char0,logfile="sys/serial.log",signal=off
+#	-serial chardev:char0
+
+# Debugging
+# Enable monitor mode
+	-monitor telnet:localhost:8086,server,nowait
+# Enable GDB debugging
+#	-s
+# Wait for GDB before starting execution
+#	-S
+# Output network traffic to file
+#	-object filter-dump,id=testnet,netdev=testnet,file=net.pcap
+# Trace options
+#	-trace "e1000e_core*"
+#	-trace "virt*"
+#	-trace "apic*"
+#	-trace "msi*"
+#	-trace "usb*"
+#	-d trace:memory_region_ops_* # Or read/write
+#	-d int # Display interrupts
+# Prevent QEMU for resetting (triple fault)
+#	-no-shutdown -no-reboot
+)
+
 # see if APPS was defined
 # eg APPS="hello.app systest.app" ./baremetal.sh setup
 # if APPS is empty then supply the default apps
@@ -33,7 +104,16 @@ function baremetal_setup {
 	mkdir src
 	mkdir sys
 
-	echo -n "Pulling code from GitHub... "
+	echo -n "Pulling code from GitHub"
+
+	if [ "$1" = "dev" ]; then
+		echo -n " (Dev Env)... "
+		setup_args=" -q"
+	else
+		echo -n "... "
+		setup_args=" -q --depth 1"
+	fi
+
 	cd src
 	git clone https://github.com/utkarsh582/Pure64.git -q
 	git clone https://github.com/utkarsh582/BareMetal.git -q
@@ -43,15 +123,19 @@ function baremetal_setup {
 	cd ..
 	echo "OK"
 
-	echo -n "Downloading UEFI firmware... "
-	cd sys
-	if [ -x "$(command -v curl)" ]; then
-		curl -s -o OVMF.fd https://cdn.download.clearlinux.org/image/OVMF.fd
+	if [ -x "$(command -v mformat)" ]; then
+		echo -n "Downloading UEFI firmware... "
+		cd sys
+		if [ -x "$(command -v curl)" ]; then
+			curl -s -o OVMF.fd https://cdn.download.clearlinux.org/image/OVMF.fd
+		else
+			wget -q https://cdn.download.clearlinux.org/image/OVMF.fd
+		fi
+		cd ..
+		echo "OK"
 	else
-		wget -q https://cdn.download.clearlinux.org/image/OVMF.fd
+		echo -n "Skipping UEFI firmware download due to missing mtools..."
 	fi
-	cd ..
-	echo "OK"
 
 	echo -n "Preparing dependancies... "
 	cd src/BareMetal-Monitor
@@ -155,6 +239,14 @@ function baremetal_build {
 		else
 			echo "$1 does not exist. Skipping binary injection"
 		fi
+	fi
+	softwaresize=$(wc -c <software-bios.sys)
+	if [ $softwaresize -gt 32768 ]; then
+		echo "Warning - BIOS binary is larger than 32768 bytes!"
+	fi
+	softwaresize=$(wc -c <software-uefi.sys)
+	if [ $softwaresize -gt 32768 ]; then
+		echo "Warning - UEFI binary is larger than 32768 bytes!"
 	fi
 
 	# Copy software to BMFS for BIOS loading
@@ -315,51 +407,17 @@ function baremetal_run {
 
 function baremetal_run-uefi {
 	baremetal_sys_check
-	echo "Starting QEMU..."
-	cmd=( qemu-system-x86_64
-		-machine q35
-		-name "BareMetal OS (UEFI)"
-		-bios sys/OVMF.fd
-		-m 256
-		-smp sockets=1,cpus=4
-	#	-cpu qemu64,pdpe1gb # Support for 1GiB pages
+	echo "Starting QEMU (UEFI)..."
 
-	# Network
-		-netdev socket,id=testnet,listen=:1234
-	# On a second machine uncomment the line below, comment the line above, and change the mac
-	#	-netdev socket,id=testnet,connect=127.0.0.1:1234
-	# Use one device type.
-		-device e1000,netdev=testnet,mac=10:11:12:13:14:15 # Intel 82540EM
-	#	-device e1000e,netdev=testnet,mac=10:11:12:13:14:15 # Intel 82574L
-	# Output network traffic to file
-	#	-net dump,file=net.pcap
-
-	# Disk configuration. Use one controller.
-		-drive id=disk0,file="sys/baremetal_os.img",if=none,format=raw
-	# NVMe
-	#	-device nvme,serial=12345678,drive=disk0
-	# AHCI
-		-device ahci,id=ahci
-		-device ide-hd,drive=disk0,bus=ahci.0
-	# IDE
-	#	-device ide-hd,drive=disk0,bus=ide.0
-
-	# Output serial to file
-		-serial file:"sys/serial.log"
-
-	# Debugging
-	# Enable monitor mode
-		-monitor telnet:localhost:8086,server,nowait
-	# Enable GDB debugging
-	#	-s
-	# Wait for GDB before starting execution
-	#	-S
-	# Prevent QEMU for resetting (triple fault)
-	#	-no-shutdown -no-reboot
-	)
+	cmd+=( -bios sys/OVMF.fd )
+	cmd+=( -name "BareMetal OS UEFI" )
 
 	#execute the cmd string
-	"${cmd[@]}"
+	if [ -x "$(command -v mformat)" ]; then
+		"${cmd[@]}"
+	else
+		echo -n "Unable to run UEFI image due to missing mtools"
+	fi
 }
 
 function baremetal_run_netclient {
@@ -404,6 +462,12 @@ function baremetal_vmdk {
 	qemu-img convert -O vmdk "$OUTPUT_DIR/baremetal_os.img" "$OUTPUT_DIR/BareMetal_OS.vmdk"
 }
 
+function baremetal_vpc {
+	baremetal_sys_check
+	echo "Creating VPC image..."
+	qemu-img convert -O vpc "$OUTPUT_DIR/baremetal_os.img" "$OUTPUT_DIR/BareMetal_OS.vpc"
+}
+
 function baremetal_bnr {
 	baremetal_build
 	baremetal_install
@@ -446,6 +510,7 @@ function baremetal_help {
 	echo "run-2    - Run a second instance of BareMetal for network testing"
 	echo "vdi      - Generate VDI disk image for VirtualBox"
 	echo "vmdk     - Generate VMDK disk image for VMware"
+	echo "vpc      - Generate VPC disk image for HyperV"
 	echo "bnr      - Build 'n Run"
 	echo "bnr-uefi - Build 'n Run in UEFI mode"
 	echo "*.app    - Install and run an app"
@@ -490,6 +555,10 @@ elif [ $# -eq 1 ]; then
 		baremetal_install_demos
 	elif [ "$1" == "vdi" ]; then
 		baremetal_vdi
+	elif [ "$1" == "vmdk" ]; then
+		baremetal_vmdk
+	elif [ "$1" == "vpc" ]; then
+		baremetal_vpc
 	elif [ "$1" == "bnr" ]; then
 		baremetal_bnr
 	elif [ "$1" == "bnr-uefi" ]; then
@@ -504,5 +573,7 @@ elif [ $# -eq 2 ]; then
 		baremetal_build $2
 	elif [ "$1" == "install" ]; then
 		baremetal_install $2
+	elif [ "$1" == "setup" ]; then
+		baremetal_setup $2
 	fi
 fi
